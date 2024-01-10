@@ -1,20 +1,8 @@
+mod file_operations;
+
 use clap::Parser;
-
-#[derive(Parser, Debug)]
-#[command(author = "Fafa",name = "mini-geojson",  version, about, long_about = None)]
-struct Args {
-    /// Sets the path to the input GeoJSON file
-    #[clap(short, long, required = true)]
-    input: String,
-
-    /// Sets the path to the output GeoJSON file
-    #[clap(short, long, default_value = "min_input_filename.geojson")]
-    output: String,
-
-    /// Sets the number of decimals to truncate to
-    #[clap(short, long, required = true)]
-    decimal: usize,
-}
+use mini_geojson::args::Args;
+use mini_geojson::file_operations::extract_filename_from_path;
 
 fn main() {
     let args = Args::parse();
@@ -23,4 +11,11 @@ fn main() {
         "Input file: {} \nOutput file: {} \nDecimal places to truncate: {}",
         input, output, decimal
     );
+
+    let filename = extract_filename_from_path(&input);
+    if let Some(filename) = filename {
+        println!("Filename: {:?}", filename)
+    } else {
+        println!("No filename found")
+    }
 }
