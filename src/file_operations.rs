@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 use std::path::Path;
 
 enum FileExtension {
@@ -35,4 +37,18 @@ pub fn extract_filename_from_path(path: &str) -> Option<String> {
 /// Add a prefix to a filename (example: "input.geojson" + "min_" = "min_input.geojson")
 pub fn add_prefix_to_filename(filename: &str, prefix: &str) -> String {
     format!("{}{}", prefix, filename)
+}
+
+pub fn is_geojson(parsed_json: &Value) -> bool {
+    //println!("Content: {}", content);
+
+    // Check if there is a "geometry" property
+    if let Some(geometry) = parsed_json.get("geometry") {
+        // Check if the "geometry" property has coordinates
+        if let Some(coordinates) = geometry.get("coordinates") {
+            // Check if the coordinates are not empty
+            return !coordinates.as_array().unwrap().is_empty();
+        }
+    }
+    false
 }
