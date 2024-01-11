@@ -1,0 +1,9 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point"
+  },
+  "properties": {
+    "name": "My Point"
+  }
+}
