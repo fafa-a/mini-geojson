@@ -1,13 +1,16 @@
 use clap::Parser;
 use mini_geojson::args::Args; // Import Args for testing
 use mini_geojson::file_operations::{
-    add_prefix_to_filename, extract_filename_from_path, is_geojson,
+    add_prefix_to_filename, extract_filename_from_path, is_geojson, read_json_file,
 };
+
+use mini_geojson::geo_operations::truncate_coordinate_in_array;
+use serde_json::json;
 
 #[test]
 fn test_arg_parsing() {
-    let args = Args::parse_from(["mini-geojson", "-i", "input.geojson", "-d", "3"]);
 
+    let args = Args::parse_from(["mini-geojson", "-i", "input.geojson", "-d", "3"]);
     assert_eq!(args.input, "input.geojson");
     assert_eq!(args.output, "min_input_filename.geojson"); // Default value
     assert_eq!(args.decimal, 3);
@@ -38,19 +41,80 @@ fn test_add_prefix_to_filename() {
 }
 
 #[test]
-fn test_is_geojson() {
-    let is_geojson = is_geojson("data/test-geojson-true.geojson");
-    assert_eq!(is_geojson, true);
+fn test_is_geometry_in_feature() {
+    let file_path = "data/test-geojson-true.geojson";
+    let parsed_json = read_json_file(file_path).unwrap();
+    let is_geojson = is_geojson(&parsed_json);
+    assert!(is_geojson);
 }
 
 #[test]
-fn test_is_not_geojson() {
-    let is_geojson = is_geojson("data/test-geojson-false.geojson");
-    assert_eq!(is_geojson, false);
+fn test_is_not_geometry_in_feature() {
+    let file_path = "data/test-geojson-false.geojson";
+    let parsed_json = read_json_file(file_path).unwrap();
+    let is_geojson = is_geojson(&parsed_json);
+    assert!(!is_geojson);
 }
 
 #[test]
-fn test_is_geojson_with_geometry_but_no_coords() {
-    let is_geojson = is_geojson("data/test-geojson-geometry-no-coords.geojson");
-    assert_eq!(is_geojson, false);
+fn test_is_geometry_in_feature_with_no_coords() {
+    let file_path = "data/test-geojson-geometry-no-coords.geojson";
+    let parsed_json = read_json_file(file_path).unwrap();
+    let is_geojson = is_geojson(&parsed_json);
+    assert!(!is_geojson);
 }
+
+#[test]
+fn test_truncate_coord() {
+    let mut coordinates = json!([1.234567, 2.345678]);
+    let decimal = 2;
+
+    truncate_coordinate_in_array(&mut coordinates, decimal);
+
+    assert_eq!(coordinates, json!([1.23, 2.35]));
+}
+
+#[test]
+fn test_truncate_coordinate_in_array_of_array() {
+    let mut coordinates = json!([[1.234567, 2.345678], [4.567890, 5.678901]]);
+    let decimal = 2;
+
+    truncate_coordinate_in_array(&mut coordinates, decimal);
+
+    assert_eq!(coordinates, json!([[1.23, 2.35], [4.57, 5.68]]));
+}
+
+#[test]
+fn truncate_coordinate_in_geojson_geometry() {
+    let mut coordinates = json!([
+        [
+            [1.234567, 2.345678],
+            [4.567890, 5.678901],
+            [7.890123, 8.901234],
+            [1.234567, 2.345678]
+        ],
+        [
+            [1.234567, 2.345678],
+            [4.567890, 5.678901],
+            [7.890123, 8.901234],
+            [1.234567, 2.345678]
+        ],
+        [
+            [1.234567, 2.345678],
+            [4.567890, 5.678901],
+            [7.890123, 8.901234],
+            [1.234567, 2.345678]
+        ]
+    ]);
+    let decimal = 2;
+    truncate_coordinate_in_array(&mut coordinates, decimal);
+    assert_eq!(
+        coordinates,
+        json!([
+            [[1.23, 2.35], [4.57, 5.68], [7.89, 8.90], [1.23, 2.35]],
+            [[1.23, 2.35], [4.57, 5.68], [7.89, 8.90], [1.23, 2.35]],
+            [[1.23, 2.35], [4.57, 5.68], [7.89, 8.90], [1.23, 2.35]]
+        ])
+    );
+}
+

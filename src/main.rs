@@ -1,11 +1,8 @@
-mod file_operations;
-
-use std::fs;
-
 use clap::Parser;
 use mini_geojson::args::Args;
-use mini_geojson::file_operations::{extract_filename_from_path, is_geojson};
-use serde_json::Value;
+use mini_geojson::file_operations::{
+    extract_filename_from_path, process_geojson, read_json_file, write_geojson_file,
+};
 
 fn main() {
     let args = Args::parse();
@@ -22,11 +19,16 @@ fn main() {
         println!("No filename found")
     }
 
-    let content = fs::read_to_string(input).expect("Unable to read the file");
-    let parsed_json: Value = serde_json::from_str(&content).unwrap();
-    let geojson = is_geojson(&parsed_json);
-    if geojson {
-        println!("This is GeoJSON");
-        println!("parsed_json: {:?}", parsed_json);
+    let mut geojson = read_json_file(&input).unwrap();
+
+    match process_geojson(&mut geojson, decimal) {
+        Ok(()) => {
+            println!("GeoJSON processed successfully.");
+            match write_geojson_file(&geojson, &output) {
+                Ok(()) => println!("GeoJSON written successfully."),
+                Err(e) => println!("Error writing GeoJSON: {}", e),
+            }
+        }
+        Err(e) => println!("Error processing GeoJSON: {}", e),
     }
 }

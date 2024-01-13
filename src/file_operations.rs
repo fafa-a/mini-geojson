@@ -1,10 +1,46 @@
-use serde_json::Value;
+use crate::geo_operations::truncate_coordinate_in_array;
 
+use serde_json::{from_str, Value};
+use std::fs;
 use std::path::Path;
 
 enum FileExtension {
     GeoJson,
     Json,
+}
+
+pub fn read_json_file(file_path: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(file_path)?;
+    let parsed_json: Value = from_str(&content)?;
+
+    Ok(parsed_json)
+}
+
+pub fn write_geojson_file(
+    geojson: &Value,
+    output_file: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let geojson_string = serde_json::to_string_pretty(geojson)?;
+    fs::write(output_file, geojson_string)?;
+
+    Ok(())
+}
+
+pub fn process_geojson(
+    geojson: &mut Value,
+    decimal: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(features) = geojson["features"].as_array_mut() {
+        for feature in features.iter_mut() {
+            if let Some(geometry) = feature["geometry"].as_object_mut() {
+                if let Some(coords) = geometry.get_mut("coordinates") {
+                    truncate_coordinate_in_array(coords, decimal);
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn extract_file_extension(ext: &str) -> Option<FileExtension> {
@@ -40,8 +76,7 @@ pub fn add_prefix_to_filename(filename: &str, prefix: &str) -> String {
 }
 
 pub fn is_geojson(parsed_json: &Value) -> bool {
-    //println!("Content: {}", content);
-
+    println!("Parsed JSON: {}", parsed_json);
     // Check if there is a "geometry" property
     if let Some(geometry) = parsed_json.get("geometry") {
         // Check if the "geometry" property has coordinates
