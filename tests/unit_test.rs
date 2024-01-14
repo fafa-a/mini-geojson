@@ -8,7 +8,7 @@ use mini_geojson::geo_operations::truncate_coordinate_in_array;
 use serde_json::json;
 
 #[test]
-fn test_base_arg_parsing() {
+fn test_base_arg_parsing_with_short_arg() {
     let args = Args::parse_from(["mini-geojson", "-i", "input.geojson", "-d", "3"]);
     assert_eq!(args.input, "input.geojson");
     assert_eq!(args.output, "./output/");
@@ -18,7 +18,7 @@ fn test_base_arg_parsing() {
 }
 
 #[test]
-fn test_all_arg_parsing() {
+fn test_all_args_parsing_with_short_arg() {
     let args = Args::parse_from([
         "mini-geojson",
         "-i",
@@ -29,6 +29,36 @@ fn test_all_arg_parsing() {
         "3",
         "-O",
         "-p",
+    ]);
+    assert_eq!(args.input, "input.geojson");
+    assert_eq!(args.output, "output.geojson");
+    assert_eq!(args.decimal, 3);
+    assert!(args.overwrite);
+    assert!(args.pretty);
+}
+
+#[test]
+fn test_base_arg_parsing_with_long_arg() {
+    let args = Args::parse_from(["mini-geojson", "--input", "input.geojson", "--decimal", "3"]);
+    assert_eq!(args.input, "input.geojson");
+    assert_eq!(args.output, "./output/");
+    assert_eq!(args.decimal, 3);
+    assert!(!args.overwrite);
+    assert!(!args.pretty);
+}
+
+#[test]
+fn test_all_args_parsing_with_long_arg() {
+    let args = Args::parse_from([
+        "mini-geojson",
+        "--input",
+        "input.geojson",
+        "--output",
+        "output.geojson",
+        "--decimal",
+        "3",
+        "--overwrite",
+        "--pretty",
     ]);
     assert_eq!(args.input, "input.geojson");
     assert_eq!(args.output, "output.geojson");
