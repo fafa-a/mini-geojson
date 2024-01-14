@@ -1,28 +1,46 @@
+use crate::args::Args;
 use crate::geo_operations::truncate_coordinate_in_array;
 
-use serde_json::{from_str, Value};
-use std::fs;
-use std::path::Path;
+use serde_json::{from_reader, to_writer, to_writer_pretty, Value};
+use std::fs::File;
+use std::io;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 enum FileExtension {
     GeoJson,
     Json,
 }
 
-pub fn read_json_file(file_path: &str) -> Result<Value, Box<dyn std::error::Error>> {
-    let content = fs::read_to_string(file_path)?;
-    let parsed_json: Value = from_str(&content)?;
+#[derive(Error, Debug)]
+pub enum MyError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
 
-    Ok(parsed_json)
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+}
+
+pub fn read_json_file<P: AsRef<Path>>(file_path: P) -> Result<Value, MyError> {
+    let file = File::open(file_path).map_err(MyError::Io)?;
+    let reader = io::BufReader::new(file);
+
+    from_reader(reader).map_err(MyError::Json)
 }
 
 pub fn write_geojson_file(
     geojson: &Value,
-    output_file: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let geojson_string = serde_json::to_string_pretty(geojson)?;
-    fs::write(output_file, geojson_string)?;
+    output_file: &mut File,
+    pretty: bool,
+) -> Result<(), MyError> {
+    if pretty {
+        to_writer_pretty(&mut *output_file, geojson).map_err(MyError::Json)?;
+    } else {
+        to_writer(&mut *output_file, geojson).map_err(MyError::Json)?;
+    }
 
+    output_file.flush().map_err(MyError::Io)?;
     Ok(())
 }
 
@@ -43,6 +61,21 @@ pub fn process_geojson(
     Ok(())
 }
 
+pub fn handle_geojson_processing(
+    args: Args,
+    output_path: PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut geojson = read_json_file(&args.input)?;
+
+    process_geojson(&mut geojson, args.decimal)?;
+    println!("GeoJSON processed successfully.");
+
+    let mut file = File::create(&output_path)?;
+    write_geojson_file(&geojson, &mut file, args.pretty)?;
+    println!("GeoJSON written successfully in {:?}", output_path);
+
+    Ok(())
+}
 fn extract_file_extension(ext: &str) -> Option<FileExtension> {
     match ext {
         "geojson" => Some(FileExtension::GeoJson),
