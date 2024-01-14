@@ -1,7 +1,12 @@
+use log::{debug, info};
 use serde_json::{json, Value};
 
 pub fn truncate_coordinate_in_array(coordinates: &mut Value, decimal: usize) {
-    // Recursive function to handle nested arrays
+    info!(
+        "Starting coordinate truncation with decimal precision: {}",
+        decimal
+    );
+
     fn truncate_recursive(coord: &mut Value, decimal: usize) {
         match coord {
             Value::Array(coords) => {
@@ -12,6 +17,7 @@ pub fn truncate_coordinate_in_array(coordinates: &mut Value, decimal: usize) {
             Value::Number(number) => {
                 if let Some(number) = number.as_f64() {
                     let truncated_number = truncate_coord(number, decimal);
+                    debug!("Truncating coordinate: {} -> {}", number, truncated_number);
                     *coord = json!(truncated_number);
                 }
             }
@@ -20,6 +26,7 @@ pub fn truncate_coordinate_in_array(coordinates: &mut Value, decimal: usize) {
     }
 
     truncate_recursive(coordinates, decimal);
+    info!("Coordinate truncation completed");
 }
 
 pub fn truncate_coord(coord: f64, decimal: usize) -> f64 {

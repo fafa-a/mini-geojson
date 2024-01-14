@@ -1,6 +1,6 @@
 use crate::args::Args;
 use crate::geo_operations::truncate_coordinate_in_array;
-
+use log::{debug, error, info};
 use serde_json::{from_reader, to_writer, to_writer_pretty, Value};
 use std::fs::{self, File};
 use std::io;
@@ -8,6 +8,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+#[derive(Debug)]
 enum FileExtension {
     GeoJson,
     Json,
@@ -35,10 +36,28 @@ pub enum MyError {
 }
 
 pub fn read_json_file<P: AsRef<Path>>(file_path: P) -> Result<Value, MyError> {
-    let file = File::open(file_path).map_err(MyError::Io)?;
+    info!("Reading file: {:?}", file_path.as_ref());
+    let file = match File::open(&file_path) {
+        Ok(file) => file,
+        Err(e) => {
+            error!(
+                "Failed to open file: {:?}, error: {}",
+                file_path.as_ref(),
+                e
+            );
+            return Err(MyError::Io(e));
+        }
+    };
     let reader = io::BufReader::new(file);
 
-    from_reader(reader).map_err(MyError::Json)
+    from_reader(reader).map_err(|e| {
+        error!(
+            "Failed to read JSON from file: {:?}, error: {}",
+            file_path.as_ref(),
+            e
+        );
+        MyError::Json(e)
+    })
 }
 
 pub fn write_geojson_file(
@@ -46,13 +65,24 @@ pub fn write_geojson_file(
     output_file: &mut File,
     pretty: bool,
 ) -> Result<(), MyError> {
-    if pretty {
-        to_writer_pretty(&mut *output_file, geojson).map_err(MyError::Json)?;
-    } else {
-        to_writer(&mut *output_file, geojson).map_err(MyError::Json)?;
-    }
+    info!("Writing GeoJSON file, pretty: {}", pretty);
 
-    output_file.flush().map_err(MyError::Io)?;
+    let write_result = if pretty {
+        to_writer_pretty(&mut *output_file, geojson)
+    } else {
+        to_writer(&mut *output_file, geojson)
+    };
+
+    write_result.map_err(|e| {
+        error!("Failed to write GeoJSON, error: {}", e);
+        MyError::Json(e)
+    })?;
+
+    output_file.flush().map_err(|e| {
+        error!("Failed to flush output file, error: {}", e);
+        MyError::Io(e)
+    })?;
+
     Ok(())
 }
 
@@ -60,6 +90,7 @@ pub fn process_geojson(
     geojson: &mut Value,
     decimal: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    debug!("Processing GeoJSON, with decimal precision: {}", decimal);
     if let Some(features) = geojson["features"].as_array_mut() {
         for feature in features.iter_mut() {
             if let Some(geometry) = feature["geometry"].as_object_mut() {
@@ -77,14 +108,15 @@ pub fn handle_geojson_processing(
     args: Args,
     output_path: PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Handling GeoJSON processing for file: {:?}", args.input);
     let mut geojson = read_json_file(&args.input)?;
 
     process_geojson(&mut geojson, args.decimal)?;
-    println!("GeoJSON processed successfully.");
+    info!("GeoJSON processed successfully.");
 
     let mut file = File::create(&output_path)?;
     write_geojson_file(&geojson, &mut file, args.pretty)?;
-    println!("GeoJSON written successfully in {:?}", output_path);
+    info!("GeoJSON written successfully to {:?}", output_path);
 
     Ok(())
 }
@@ -95,28 +127,44 @@ pub fn handle_output_path(args: &Args) -> Result<PathBuf, MyError> {
     if output_path == PathBuf::from("./output/") {
         if let Some(filename) = extract_filename_from_path(&args.input) {
             output_path.push(format!("min_{}", filename));
+            info!(
+                "Output path set to default, filename adjusted: {:?}",
+                output_path
+            );
         } else {
+            error!("Invalid filename in input path: {}", args.input);
             return Err(MyError::InvalidFilename);
         }
     }
 
     if Path::new(&output_path).exists() && !args.overwrite {
+        error!(
+            "Output path already exists and overwrite is not allowed: {:?}",
+            output_path
+        );
         return Err(MyError::FileExists);
     }
 
     if let Some(parent) = output_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| MyError::DirectoryCreationError(e.to_string()))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            error!("Failed to create directory: {:?}, error: {}", parent, e);
+            MyError::DirectoryCreationError(e.to_string())
+        })?;
     }
 
     Ok(output_path)
 }
 
 fn extract_file_extension(ext: &str) -> Option<FileExtension> {
-    match ext {
+    info!("Extracting file extension: {}", ext);
+    let extension = match ext {
         "geojson" => Some(FileExtension::GeoJson),
         "json" => Some(FileExtension::Json),
         _ => None,
-    }
+    };
+
+    debug!("Extracted extension: {:?}", extension);
+    extension
 }
 
 /// Extract the filename from a path (example: "/home/user/input.geojson" -> "input.geojson")
@@ -125,33 +173,39 @@ fn extract_file_extension(ext: &str) -> Option<FileExtension> {
 /// or if the filename is empty (example: "/home/user/.geojson")
 /// or if the filename is "/" (example: "/home/user/")
 pub fn extract_filename_from_path(path: &str) -> Option<String> {
+    debug!("Extracting filename from path: {}", path);
     let file_path = Path::new(path);
 
     if let Some(file_name) = file_path.file_name()?.to_str() {
         if let Some(ext) = file_path.extension()?.to_str() {
-            println!("Extension: {}", ext);
+            debug!("Extension: {}", ext);
             if extract_file_extension(ext).is_some() {
                 return Some(file_name.to_string());
             }
         }
     }
+    info!("No valid filename extracted from path: {}", path);
     None
 }
 
 /// Add a prefix to a filename (example: "input.geojson" + "min_" = "min_input.geojson")
 pub fn add_prefix_to_filename(filename: &str, prefix: &str) -> String {
-    format!("{}{}", prefix, filename)
+    debug!("Adding prefix '{}' to filename '{}'", prefix, filename);
+    let new_filename = format!("{}{}", prefix, filename);
+    info!("New filename: {}", new_filename);
+    new_filename
 }
 
 pub fn is_geojson(parsed_json: &Value) -> bool {
-    println!("Parsed JSON: {}", parsed_json);
-    // Check if there is a "geometry" property
-    if let Some(geometry) = parsed_json.get("geometry") {
-        // Check if the "geometry" property has coordinates
-        if let Some(coordinates) = geometry.get("coordinates") {
-            // Check if the coordinates are not empty
-            return !coordinates.as_array().unwrap().is_empty();
-        }
-    }
-    false
+    debug!("Checking if parsed JSON is GeoJSON: {}", parsed_json);
+    let is_geojson = if let Some(geometry) = parsed_json.get("geometry") {
+        geometry
+            .get("coordinates")
+            .and_then(|c| c.as_array())
+            .map_or(false, |coords| !coords.is_empty())
+    } else {
+        false
+    };
+    info!("Is GeoJSON: {}", is_geojson);
+    is_geojson
 }

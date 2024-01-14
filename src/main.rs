@@ -1,26 +1,27 @@
 use clap::Parser;
+use log::{error, info};
 use mini_geojson::args::Args;
 use mini_geojson::file_operations::{handle_geojson_processing, handle_output_path};
 
 fn main() {
+    pretty_env_logger::init();
     let args = Args::parse();
-    println!(
-        "Input file: {} \nOutput file: {} \nDecimal to keep: {} \nOverwrite: {}",
-        args.input, args.output, args.decimal, args.overwrite
-    );
+    info!("Starting program with arguments: {:?}", args);
 
     let output_path = match handle_output_path(&args) {
-        Ok(path) => {
-            println!("Output file: {:?}", path);
-            path
-        }
+        Ok(path) => path,
         Err(e) => {
-            eprintln!("Error handling output path: {}", e);
+            error!("Error handling output path: {}", e);
             return;
         }
     };
 
-    handle_geojson_processing(args, output_path).unwrap_or_else(|e| {
-        eprintln!("Error processing GeoJSON: {}", e);
-    });
+    match handle_geojson_processing(args, output_path) {
+        Ok(()) => {
+            println!("Program completed successfully.");
+        }
+        Err(e) => {
+            error!("Error processing GeoJSON: {}", e);
+        }
+    }
 }
