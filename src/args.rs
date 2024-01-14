@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{ArgAction, Parser};
 
 #[derive(Parser, Debug)]
 #[command(author = "Fafa",name = "mini-geojson",  version, about, long_about = None)]
@@ -8,10 +8,18 @@ pub struct Args {
     pub input: String,
 
     /// Sets the path to the output GeoJSON file
-    #[clap(short, long, default_value = "min_input_filename.geojson")]
+    #[clap(short, long, default_value = "./output/")]
     pub output: String,
 
-    /// Sets the number of decimals to truncate to
+    /// Sets the number of decimals to keep
     #[clap(short, long, required = true)]
     pub decimal: usize,
+
+    /// Overwrites the output file if it already exists
+    #[clap(short = 'O', long, action = ArgAction::SetTrue)]
+    pub overwrite: bool,
+
+    /// Pretty write the output file
+    #[clap(short, long, action = ArgAction::SetTrue)]
+    pub pretty: bool,
 }
