@@ -8,12 +8,33 @@ use mini_geojson::geo_operations::truncate_coordinate_in_array;
 use serde_json::json;
 
 #[test]
-fn test_arg_parsing() {
-
+fn test_base_arg_parsing() {
     let args = Args::parse_from(["mini-geojson", "-i", "input.geojson", "-d", "3"]);
     assert_eq!(args.input, "input.geojson");
-    assert_eq!(args.output, "min_input_filename.geojson"); // Default value
+    assert_eq!(args.output, "./output/");
     assert_eq!(args.decimal, 3);
+    assert!(!args.overwrite);
+    assert!(!args.pretty);
+}
+
+#[test]
+fn test_all_arg_parsing() {
+    let args = Args::parse_from([
+        "mini-geojson",
+        "-i",
+        "input.geojson",
+        "-o",
+        "output.geojson",
+        "-d",
+        "3",
+        "-O",
+        "-p",
+    ]);
+    assert_eq!(args.input, "input.geojson");
+    assert_eq!(args.output, "output.geojson");
+    assert_eq!(args.decimal, 3);
+    assert!(args.overwrite);
+    assert!(args.pretty);
 }
 
 #[test]
@@ -117,4 +138,3 @@ fn truncate_coordinate_in_geojson_geometry() {
         ])
     );
 }
-
