@@ -2,7 +2,7 @@ use crate::args::Args;
 use crate::geo_operations::truncate_coordinate_in_array;
 
 use serde_json::{from_reader, to_writer, to_writer_pretty, Value};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -15,11 +15,23 @@ enum FileExtension {
 
 #[derive(Error, Debug)]
 pub enum MyError {
+    // Error from libraries
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
 
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+
+    // Error from the program
+    // Variants for handle_output_path
+    #[error("Invalid filename in the input path")]
+    InvalidFilename,
+
+    #[error("File already exists and overwrite not allowed")]
+    FileExists,
+
+    #[error("Failed to create the output directory: {0}")]
+    DirectoryCreationError(String),
 }
 
 pub fn read_json_file<P: AsRef<Path>>(file_path: P) -> Result<Value, MyError> {
@@ -76,6 +88,29 @@ pub fn handle_geojson_processing(
 
     Ok(())
 }
+
+pub fn handle_output_path(args: &Args) -> Result<PathBuf, MyError> {
+    let mut output_path = PathBuf::from(&args.output);
+
+    if output_path == PathBuf::from("./output/") {
+        if let Some(filename) = extract_filename_from_path(&args.input) {
+            output_path.push(format!("min_{}", filename));
+        } else {
+            return Err(MyError::InvalidFilename);
+        }
+    }
+
+    if Path::new(&output_path).exists() && !args.overwrite {
+        return Err(MyError::FileExists);
+    }
+
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| MyError::DirectoryCreationError(e.to_string()))?;
+    }
+
+    Ok(output_path)
+}
+
 fn extract_file_extension(ext: &str) -> Option<FileExtension> {
     match ext {
         "geojson" => Some(FileExtension::GeoJson),
