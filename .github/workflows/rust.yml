@@ -27,6 +27,7 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Create Release
+        id: create_release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/create-release@v1
         env:
@@ -46,4 +47,3 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/release/mini-geojson
           asset_name: mini-geojson
-          asset_content_type: application/octet-stream
