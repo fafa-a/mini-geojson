@@ -2,6 +2,7 @@ use crate::args::Args;
 use crate::geo_operations::truncate_coordinate_in_array;
 use log::{debug, error, info};
 use serde_json::{from_reader, to_writer, to_writer_pretty, Value};
+use std::env::args;
 use std::fs::{self, File};
 use std::io;
 use std::io::Write;
@@ -124,7 +125,7 @@ pub fn handle_geojson_processing(
 pub fn handle_output_path(args: &Args) -> Result<PathBuf, MyError> {
     let mut output_path = PathBuf::from(&args.output);
 
-    if output_path == PathBuf::from("./output/") {
+    if output_path == PathBuf::from("./output/") || args.output.ends_with('/') {
         if let Some(filename) = extract_filename_from_path(&args.input) {
             output_path.push(format!("min_{}", filename));
             info!(
@@ -152,6 +153,7 @@ pub fn handle_output_path(args: &Args) -> Result<PathBuf, MyError> {
         })?;
     }
 
+    info!("Output path: {:?}", output_path);
     Ok(output_path)
 }
 
