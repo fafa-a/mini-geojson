@@ -2,7 +2,6 @@ use crate::args::Args;
 use crate::geo_operations::truncate_coordinate_in_array;
 use log::{debug, error, info};
 use serde_json::{from_reader, to_writer, to_writer_pretty, Value};
-use std::env::args;
 use std::fs::{self, File};
 use std::io;
 use std::io::Write;
@@ -123,7 +122,8 @@ pub fn handle_geojson_processing(
 }
 
 pub fn handle_output_path(args: &Args) -> Result<PathBuf, MyError> {
-    let mut output_path = PathBuf::from(&args.output);
+    let sanitized_output = sanitize_output_path(&args.output);
+    let mut output_path = PathBuf::from(sanitized_output);
 
     if output_path == PathBuf::from("./output/") || args.output.ends_with('/') {
         if let Some(filename) = extract_filename_from_path(&args.input) {
@@ -155,6 +155,24 @@ pub fn handle_output_path(args: &Args) -> Result<PathBuf, MyError> {
 
     info!("Output path: {:?}", output_path);
     Ok(output_path)
+}
+
+fn sanitize_output_path(output_path: &str) -> String {
+    let sanitized: String = output_path
+        .chars()
+        .filter(|&c| !matches!(c, '?' | '%' | '*' | ':' | '|' | '"' | '<' | '>'))
+        .map(|c| if c == ' ' { '_' } else { c })
+        .collect();
+
+    let trimmed = sanitized.trim_end_matches(|c| c == '-' || c == '_');
+
+    if trimmed.ends_with(".geojson") {
+        trimmed.to_string()
+    } else if trimmed.ends_with(".json") {
+        format!("{}.geojson", trimmed.trim_end_matches(".json"))
+    } else {
+        format!("{}.geojson", trimmed)
+    }
 }
 
 fn extract_file_extension(ext: &str) -> Option<FileExtension> {
