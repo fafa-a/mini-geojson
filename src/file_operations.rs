@@ -229,3 +229,117 @@ pub fn is_geojson(parsed_json: &Value) -> bool {
     info!("Is GeoJSON: {}", is_geojson);
     is_geojson
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::*;
+    #[test]
+    fn test_base_arg_parsing_with_short_arg() {
+        let args = Args::parse_from(["mini-geojson", "-i", "input.geojson", "-d", "3"]);
+        assert_eq!(args.input, "input.geojson");
+        assert_eq!(args.output, "./output/");
+        assert_eq!(args.decimal, 3);
+        assert!(!args.overwrite);
+        assert!(!args.pretty);
+    }
+
+    #[test]
+    fn test_all_args_parsing_with_short_arg() {
+        let args = Args::parse_from([
+            "mini-geojson",
+            "-i",
+            "input.geojson",
+            "-o",
+            "output.geojson",
+            "-d",
+            "3",
+            "-O",
+            "-p",
+        ]);
+        assert_eq!(args.input, "input.geojson");
+        assert_eq!(args.output, "output.geojson");
+        assert_eq!(args.decimal, 3);
+        assert!(args.overwrite);
+        assert!(args.pretty);
+    }
+
+    #[test]
+    fn test_base_arg_parsing_with_long_arg() {
+        let args = Args::parse_from(["mini-geojson", "--input", "input.geojson", "--decimal", "3"]);
+        assert_eq!(args.input, "input.geojson");
+        assert_eq!(args.output, "./output/");
+        assert_eq!(args.decimal, 3);
+        assert!(!args.overwrite);
+        assert!(!args.pretty);
+    }
+
+    #[test]
+    fn test_all_args_parsing_with_long_arg() {
+        let args = Args::parse_from([
+            "mini-geojson",
+            "--input",
+            "input.geojson",
+            "--output",
+            "output.geojson",
+            "--decimal",
+            "3",
+            "--overwrite",
+            "--pretty",
+        ]);
+        assert_eq!(args.input, "input.geojson");
+        assert_eq!(args.output, "output.geojson");
+        assert_eq!(args.decimal, 3);
+        assert!(args.overwrite);
+        assert!(args.pretty);
+    }
+
+    #[test]
+    fn test_extract_filename_from_path_with_no_filename_given() {
+        let filename = extract_filename_from_path("/home/user/");
+        assert_eq!(filename, None);
+    }
+
+    #[test]
+    fn test_extract_filename_from_path() {
+        let filename = extract_filename_from_path("/home/user/input.geojson");
+        assert_eq!(filename, Some("input.geojson".to_string()));
+    }
+
+    #[test]
+    fn test_extract_filename_with_filename_for_path() {
+        let filename = extract_filename_from_path("input.geojson");
+        assert_eq!(filename, Some("input.geojson".to_string()));
+    }
+
+    #[test]
+    fn test_add_prefix_to_filename() {
+        let filename = add_prefix_to_filename("input.geojson", "min_");
+        assert_eq!(filename, "min_input.geojson");
+    }
+
+    #[test]
+    fn test_is_geometry_in_feature() {
+        let file_path = "data/test-geojson-true.geojson";
+        let parsed_json = read_json_file(file_path).unwrap();
+        let is_geojson = is_geojson(&parsed_json);
+        assert!(is_geojson);
+    }
+
+    #[test]
+    fn test_is_not_geometry_in_feature() {
+        let file_path = "data/test-geojson-false.geojson";
+        let parsed_json = read_json_file(file_path).unwrap();
+        let is_geojson = is_geojson(&parsed_json);
+        assert!(!is_geojson);
+    }
+
+    #[test]
+    fn test_is_geometry_in_feature_with_no_coords() {
+        let file_path = "data/test-geojson-geometry-no-coords.geojson";
+        let parsed_json = read_json_file(file_path).unwrap();
+        let is_geojson = is_geojson(&parsed_json);
+        assert!(!is_geojson);
+    }
+}
