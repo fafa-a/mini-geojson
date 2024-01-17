@@ -24,7 +24,7 @@ pub enum MyError {
     Json(#[from] serde_json::Error),
 
     // Error from the program
-    // Variants for handle_output_path
+    // Variants for handle_output_path         1)
     #[error("Invalid filename in the input path")]
     InvalidFilename,
 
@@ -111,7 +111,9 @@ pub fn handle_geojson_processing(
     info!("Handling GeoJSON processing for file: {:?}", args.input);
     let mut geojson = read_json_file(&args.input)?;
 
-    process_geojson(&mut geojson, args.decimal)?;
+    if let Some(decimal) = args.decimal {
+        process_geojson(&mut geojson, decimal)?;
+    }
     info!("GeoJSON processed successfully.");
 
     let mut file = File::create(&output_path)?;
@@ -240,7 +242,7 @@ mod tests {
         let args = Args::parse_from(["mini-geojson", "-i", "input.geojson", "-d", "3"]);
         assert_eq!(args.input, "input.geojson");
         assert_eq!(args.output, "./output/");
-        assert_eq!(args.decimal, 3);
+        assert_eq!(args.decimal, Some(3));
         assert!(!args.overwrite);
         assert!(!args.pretty);
     }
@@ -260,7 +262,7 @@ mod tests {
         ]);
         assert_eq!(args.input, "input.geojson");
         assert_eq!(args.output, "output.geojson");
-        assert_eq!(args.decimal, 3);
+        assert_eq!(args.decimal, Some(3));
         assert!(args.overwrite);
         assert!(args.pretty);
     }
@@ -270,7 +272,7 @@ mod tests {
         let args = Args::parse_from(["mini-geojson", "--input", "input.geojson", "--decimal", "3"]);
         assert_eq!(args.input, "input.geojson");
         assert_eq!(args.output, "./output/");
-        assert_eq!(args.decimal, 3);
+        assert_eq!(args.decimal, Some(3));
         assert!(!args.overwrite);
         assert!(!args.pretty);
     }
@@ -290,7 +292,7 @@ mod tests {
         ]);
         assert_eq!(args.input, "input.geojson");
         assert_eq!(args.output, "output.geojson");
-        assert_eq!(args.decimal, 3);
+        assert_eq!(args.decimal, Some(3));
         assert!(args.overwrite);
         assert!(args.pretty);
     }

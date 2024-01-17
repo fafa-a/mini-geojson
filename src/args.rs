@@ -20,8 +20,8 @@ pub struct Args {
     pub output: String,
 
     /// Sets the number of decimals to keep.
-    #[clap(short, long, required = true)]
-    pub decimal: usize,
+    #[clap(short, long)]
+    pub decimal: Option<usize>,
 
     /// Overwrites the output file if it already exists.
     #[clap(short = 'O', long, action = ArgAction::SetTrue)]
