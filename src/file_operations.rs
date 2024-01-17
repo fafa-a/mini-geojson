@@ -235,6 +235,9 @@ pub fn is_geojson(parsed_json: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+    use serde_json::json;
+    use std::io::{Read, Seek, SeekFrom};
+    use tempfile::NamedTempFile;
 
     use super::*;
     #[test]
@@ -343,5 +346,26 @@ mod tests {
         let parsed_json = read_json_file(file_path).unwrap();
         let is_geojson = is_geojson(&parsed_json);
         assert!(!is_geojson);
+    }
+
+    #[test]
+    fn test_no_whitespace_no_new_line() -> Result<(), io::Error> {
+        let geojson = json!({
+            "type": "FeatureCollection",
+            "features": []
+        });
+
+        let mut temp_file = NamedTempFile::new()?;
+        to_writer(&mut temp_file, &geojson)?;
+        temp_file.seek(SeekFrom::Start(0))?;
+
+        let mut min_geojson = String::new();
+        temp_file.read_to_string(&mut min_geojson)?;
+
+        let min_geojson: Value = serde_json::from_str(&min_geojson)?;
+        let minified_geojson = json!({"type":"FeatureCollection","features":[]});
+        assert_eq!(minified_geojson, min_geojson);
+
+        Ok(())
     }
 }
