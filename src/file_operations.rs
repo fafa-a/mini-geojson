@@ -37,16 +37,6 @@ pub enum MyError {
     DirectoryCreationError(String),
 }
 
-pub fn get_file_size(file_path: &str) -> std::io::Result<u64> {
-    let metadata = fs::metadata(file_path)?;
-    Ok(metadata.len())
-}
-
-pub fn calculate_size_reduction(original_size: u64, minified_size: u64) -> f64 {
-    let reduction = original_size as f64 - minified_size as f64;
-    (reduction / original_size as f64) * 100.0
-}
-
 pub fn read_json_file<P: AsRef<Path>>(file_path: P) -> Result<SonicValue, MyError> {
     info!("Reading file: {:?}", file_path.as_ref());
 
@@ -107,8 +97,8 @@ pub fn process_geojson(
 }
 
 pub fn handle_geojson_processing(
-    args: Args,
-    output_path: PathBuf,
+    args: &Args,
+    output_path: &PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     info!("Handling GeoJSON processing for file: {:?}", args.input);
     let mut geojson = read_json_file(&args.input)?;
@@ -118,7 +108,7 @@ pub fn handle_geojson_processing(
     }
     info!("GeoJSON processed successfully.");
 
-    let file = File::create(&output_path)?;
+    let file = File::create(output_path)?;
     write_geojson_file(&geojson, file, args.pretty)?;
     info!("GeoJSON written successfully to {:?}", output_path);
 
