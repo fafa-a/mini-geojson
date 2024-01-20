@@ -1,5 +1,5 @@
 use log::{debug, info};
-use serde_json::{json, Value};
+use sonic_rs::{JsonValueMutTrait, JsonValueTrait, Value};
 
 pub fn truncate_coordinate_in_array(coordinates: &mut Value, decimal: usize) {
     info!(
@@ -8,23 +8,24 @@ pub fn truncate_coordinate_in_array(coordinates: &mut Value, decimal: usize) {
     );
 
     fn truncate_recursive(coord: &mut Value, decimal: usize) {
-        match coord {
-            Value::Array(coords) => {
-                for c in coords {
+        debug!("Truncating coordinate: {:?}", coord);
+        if coord.is_array() {
+            if let Some(coords_array) = coord.as_array_mut() {
+                for c in coords_array {
                     truncate_recursive(c, decimal);
                 }
             }
-            Value::Number(number) => {
-                if let Some(number) = number.as_f64() {
-                    let truncated_number = truncate_coord(number, decimal);
-                    debug!("Truncating coordinate: {} -> {}", number, truncated_number);
-                    *coord = json!(truncated_number);
-                }
+        } else if coord.is_number() {
+            if let Some(number) = coord.as_f64() {
+                let truncated_number = truncate_coord(number, decimal);
+                debug!(
+                    "Original number: {}, Truncated number: {}",
+                    number, truncated_number
+                );
+                *coord = truncated_number.try_into().unwrap()
             }
-            _ => (),
         }
     }
-
     truncate_recursive(coordinates, decimal);
     info!("Coordinate truncation completed");
 }
@@ -36,7 +37,10 @@ pub fn truncate_coord(coord: f64, decimal: usize) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use sonic_rs::json;
+
     use super::*;
+
     #[test]
     fn test_truncate_coord() {
         let mut coordinates = json!([1.234567, 2.345678]);
