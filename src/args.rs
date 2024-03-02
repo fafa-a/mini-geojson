@@ -31,4 +31,8 @@ pub struct Args {
     /// Note: this will increase the file size.
     #[clap(short, long, action = ArgAction::SetTrue)]
     pub pretty: bool,
+
+    /// Remove the properties with null values.
+    #[clap(short = 'R', long, action = ArgAction::SetTrue)]
+    pub remove_null_properties: bool,
 }

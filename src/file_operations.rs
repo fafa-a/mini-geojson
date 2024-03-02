@@ -81,6 +81,7 @@ pub fn write_geojson_file(
 pub fn process_geojson(
     geojson: &mut SonicValue,
     decimal: usize,
+    remove_null_properties: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Processing GeoJSON, with decimal precision: {}", decimal);
     if let Some(features) = geojson.get_mut("features").as_array_mut() {
@@ -88,6 +89,12 @@ pub fn process_geojson(
             if let Some(geometry) = feature.get_mut("geometry").as_object_mut() {
                 if let Some(coords) = geometry.get_mut(&"coordinates".to_string()) {
                     truncate_coordinate_in_array(coords, decimal);
+                }
+            }
+
+            if remove_null_properties {
+                if let Some(properties) = feature.get_mut("properties").as_object_mut() {
+                    properties.retain(|_, value| !value.is_null());
                 }
             }
         }
@@ -102,9 +109,9 @@ pub fn handle_geojson_processing(
 ) -> Result<(), Box<dyn std::error::Error>> {
     info!("Handling GeoJSON processing for file: {:?}", args.input);
     let mut geojson = read_json_file(&args.input)?;
-
+    let Some(remove_null_properties) = args.remove_null_properties;
     if let Some(decimal) = args.decimal {
-        process_geojson(&mut geojson, decimal)?;
+        process_geojson(&mut geojson, decimal, remove_null_properties)?;
     }
     info!("GeoJSON processed successfully.");
 
