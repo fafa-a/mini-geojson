@@ -128,4 +128,142 @@ mod tests {
             ])
         );
     }
+
+    #[test]
+    fn test_remove_null_or_empty_properties() {
+        let mut geojson = json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "empty": "",
+                    "null": null,
+                    "value": "value"
+        },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.234567, 2.345678]
+                }
+            });
+
+        remove_null_or_empty_properties(&mut geojson);
+
+        assert_eq!(
+            geojson,
+            json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "value": "value"
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.234567, 2.345678]
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_process_feature_with_only_truncation() {
+        let mut geojson = json!({
+            "type": "Feature",
+            "properties": {
+                "name": "test",
+                "empty": "",
+                "null": null,
+                "value": "value"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1.234567, 2.345678]
+            }
+        });
+
+        process_feature(&mut geojson, Some(2), false);
+
+        assert_eq!(
+            geojson,
+            json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "empty": "",
+                    "null": null,
+                    "value": "value"
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.23, 2.35]
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_process_feature_with_only_remove_null_properties() {
+        let mut geojson = json!({
+            "type": "Feature",
+            "properties": {
+                "name": "test",
+                "empty": "",
+                "null": null,
+                "value": "value"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1.234567, 2.345678]
+            }
+        });
+
+        process_feature(&mut geojson, None, true);
+
+        assert_eq!(
+            geojson,
+            json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "value": "value"
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.234567, 2.345678]
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_process_feature_with_truncation_and_remove_null_properties() {
+        let mut geojson = json!({
+            "type": "Feature",
+            "properties": {
+                "name": "test",
+                "empty": "",
+                "null": null,
+                "value": "value"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1.234567, 2.345678]
+            }
+        });
+
+        process_feature(&mut geojson, Some(2), true);
+
+        assert_eq!(
+            geojson,
+            json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "value": "value"
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.23, 2.35]
+                }
+            })
+        );
+    }
 }
