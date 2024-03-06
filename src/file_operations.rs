@@ -1,5 +1,5 @@
 use crate::args::Args;
-use crate::geo_operations::truncate_coordinate_in_array;
+use crate::geo_operations::process_feature;
 use log::{debug, error, info};
 use sonic_rs::{
     from_str, to_writer, to_writer_pretty, JsonValueMutTrait, JsonValueTrait, Value as SonicValue,
@@ -58,6 +58,7 @@ pub fn read_json_file<P: AsRef<Path>>(file_path: P) -> Result<SonicValue, MyErro
         MyError::Json(e)
     })
 }
+
 pub fn write_geojson_file(
     geojson: &SonicValue,
     mut output_file: File,
@@ -80,21 +81,18 @@ pub fn write_geojson_file(
 
 pub fn process_geojson(
     geojson: &mut SonicValue,
-    decimal: usize,
+    decimal: Option<usize>,
     remove_null_properties: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    debug!("Processing GeoJSON, with decimal precision: {}", decimal);
-    if let Some(features) = geojson.get_mut("features").as_array_mut() {
-        for feature in features.iter_mut() {
-            if let Some(geometry) = feature.get_mut("geometry").as_object_mut() {
-                if let Some(coords) = geometry.get_mut(&"coordinates".to_string()) {
-                    truncate_coordinate_in_array(coords, decimal);
-                }
-            }
+    debug!("Processing GeoJSON, with decimal precision: {:?}", decimal);
+    debug!("Remove null properties: {}", remove_null_properties);
 
-            if remove_null_properties {
-                if let Some(properties) = feature.get_mut("properties").as_object_mut() {
-                    properties.retain(|_, value| !value.is_null());
+    match geojson.get_mut("geometry") {
+        Some(_) => process_feature(geojson, decimal, remove_null_properties),
+        None => {
+            if let Some(features) = geojson.get_mut("features").and_then(|f| f.as_array_mut()) {
+                for feature in features.iter_mut() {
+                    process_feature(feature, decimal, remove_null_properties);
                 }
             }
         }
@@ -109,10 +107,14 @@ pub fn handle_geojson_processing(
 ) -> Result<(), Box<dyn std::error::Error>> {
     info!("Handling GeoJSON processing for file: {:?}", args.input);
     let mut geojson = read_json_file(&args.input)?;
-    let Some(remove_null_properties) = args.remove_null_properties;
-    if let Some(decimal) = args.decimal {
-        process_geojson(&mut geojson, decimal, remove_null_properties)?;
-    }
+
+    let decimal = if args.remove_null_properties && args.decimal.unwrap_or_default() != 0 {
+        Some(args.decimal.unwrap_or_default())
+    } else {
+        None
+    };
+
+    process_geojson(&mut geojson, decimal, args.remove_null_properties)?;
     info!("GeoJSON processed successfully.");
 
     let file = File::create(output_path)?;
@@ -347,6 +349,15 @@ mod tests {
         let parsed_json = read_json_file(file_path).unwrap();
         let is_geojson = is_geojson(&parsed_json);
         assert!(!is_geojson);
+    }
+
+    #[test]
+    fn test_is_geosjon_coordinates_truncated_by_three() {
+        let file_path = "data/test-geojson-true.geojson";
+        let mut parsed_json = read_json_file(file_path).unwrap();
+        process_geojson(&mut parsed_json, 3, false).unwrap();
+        let expected = read_json_file("data/test-geojson-true-truncated.geojson").unwrap();
+        assert_eq!(parsed_json, expected);
     }
 
     //#[test]

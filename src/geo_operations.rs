@@ -35,6 +35,40 @@ pub fn truncate_coord(coord: f64, decimal: usize) -> f64 {
     (coord * multiplier).round() / multiplier
 }
 
+pub fn process_feature(feature: &mut Value, decimal: Option<usize>, remove_null_properties: bool) {
+    if let Some(geometry) = feature.get_mut("geometry").and_then(|g| g.as_object_mut()) {
+        if let Some(coords) = geometry.get_mut(&"coordinates".to_string()) {
+            if let Some(decimal_value) = decimal {
+                truncate_coordinate_in_array(coords, decimal_value);
+            }
+        }
+        if remove_null_properties {
+            remove_null_or_empty_properties(feature);
+        }
+    }
+}
+
+fn remove_null_or_empty_properties(geojson: &mut Value) {
+    if let Some(properties) = geojson
+        .get_mut("properties")
+        .and_then(|p| p.as_object_mut())
+    {
+        let keys_to_remove: Vec<String> = properties
+            .iter()
+            .filter_map(|(key, value)| {
+                if value.is_null() || value.as_str() == Some("") {
+                    Some(key.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for key in keys_to_remove {
+            properties.remove(&key);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use sonic_rs::json;
