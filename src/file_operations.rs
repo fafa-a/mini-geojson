@@ -355,7 +355,7 @@ mod tests {
     fn test_is_geosjon_coordinates_truncated_by_three() {
         let file_path = "data/test-geojson-true.geojson";
         let mut parsed_json = read_json_file(file_path).unwrap();
-        process_geojson(&mut parsed_json, 3, false).unwrap();
+        process_geojson(&mut parsed_json, Some(3), false).unwrap();
         let expected = read_json_file("data/test-geojson-true-truncated.geojson").unwrap();
         assert_eq!(parsed_json, expected);
     }
