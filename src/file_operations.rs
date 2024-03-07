@@ -83,16 +83,27 @@ pub fn process_geojson(
     geojson: &mut SonicValue,
     decimal: Option<usize>,
     remove_null_properties: bool,
+    properties_to_remove: Option<&Vec<String>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Processing GeoJSON, with decimal precision: {:?}", decimal);
     debug!("Remove null properties: {}", remove_null_properties);
 
     match geojson.get_mut("geometry") {
-        Some(_) => process_feature(geojson, decimal, remove_null_properties),
+        Some(_) => process_feature(
+            geojson,
+            decimal,
+            remove_null_properties,
+            properties_to_remove,
+        ),
         None => {
             if let Some(features) = geojson.get_mut("features").and_then(|f| f.as_array_mut()) {
                 for feature in features.iter_mut() {
-                    process_feature(feature, decimal, remove_null_properties);
+                    process_feature(
+                        feature,
+                        decimal,
+                        remove_null_properties,
+                        properties_to_remove,
+                    );
                 }
             }
         }
@@ -114,7 +125,12 @@ pub fn handle_geojson_processing(
         None
     };
 
-    process_geojson(&mut geojson, decimal, args.remove_null_properties)?;
+    process_geojson(
+        &mut geojson,
+        decimal,
+        args.remove_null_properties,
+        args.properties_to_remove.as_ref(),
+    )?;
     info!("GeoJSON processed successfully.");
 
     let file = File::create(output_path)?;
@@ -355,8 +371,27 @@ mod tests {
     fn test_is_geosjon_coordinates_truncated_by_three() {
         let file_path = "data/test-geojson-true.geojson";
         let mut parsed_json = read_json_file(file_path).unwrap();
-        process_geojson(&mut parsed_json, Some(3), false).unwrap();
+        process_geojson(&mut parsed_json, Some(3), false, None).unwrap();
         let expected = read_json_file("data/test-geojson-true-truncated.geojson").unwrap();
+        assert_eq!(parsed_json, expected);
+    }
+
+    #[test]
+    fn test_remove_specific_keys(){
+        let file_path = "data/small-departements.geojson";
+        let mut parsed_json = read_json_file(file_path).unwrap();
+        process_geojson(&mut parsed_json, None, false, Some(&vec!["name".to_string(), "key_to_delete".to_string()])).unwrap();
+        let expected = read_json_file("data/min_small-departements-keys-to-delete.geojson").unwrap();
+        assert_eq!(parsed_json, expected);
+
+    }
+
+    #[test]
+    fn test_remove_specific_keys_and_null_and_empty(){
+        let file_path = "data/small-departements.geojson";
+        let mut parsed_json = read_json_file(file_path).unwrap();
+        process_geojson(&mut parsed_json, None, true, Some(&vec!["name".to_string(), "key_to_delete".to_string()])).unwrap();
+        let expected = read_json_file("data/min_small-departements-keys-to-delete-empty-null-values.geojson").unwrap();
         assert_eq!(parsed_json, expected);
     }
 

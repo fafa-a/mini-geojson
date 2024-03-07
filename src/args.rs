@@ -1,4 +1,4 @@
-use clap::{ArgAction, Parser};
+use clap::{builder::ValueRange, ArgAction, Parser};
 
 #[derive(Parser, Debug)]
 #[command(author = "Fafa",name = "mini-geojson",  version, about, long_about = None)]
@@ -32,7 +32,12 @@ pub struct Args {
     #[clap(short, long, action = ArgAction::SetTrue)]
     pub pretty: bool,
 
-    /// Remove the properties with null values.
+    /// Remove the properties with null values and empty string.
     #[clap(short = 'R', long, action = ArgAction::SetTrue)]
     pub remove_null_properties: bool,
+
+    /// Remove the properties with the specified keys.
+    /// example: -r key1 key2 key3 or -r key1,key2,key3
+    #[clap(short = 'r', long, num_args = ValueRange::new(0..), value_delimiter = ',')]
+    pub properties_to_remove: Option<Vec<String>>,
 }

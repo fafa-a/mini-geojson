@@ -1,0 +1,14 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      125.6123123123, 10.6123123123, 125.6123123123, 10.6123123123
+    ]
+  },
+  "properties": {
+    "name": "My Point",
+    "city": "Toulouse",
+    "number": 5
+  }
+}

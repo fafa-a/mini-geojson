@@ -1,14 +1,10 @@
-{
+ {
   "type": "FeatureCollection",
   "features": [
     {
       "type": "Feature",
       "properties": {
         "id": 0,
-        "name": "departement 00",
-        "key_to_delete": "delete",
-        "empty key": "",
-        "null key": null
       },
       "geometry": {
         "type": "Polygon",
@@ -126,10 +122,6 @@
       "type": "Feature",
       "properties": {
         "id": 2,
-        "name": "departement 02",
-        "key_to_delete": "delete",
-        "empty key": "",
-        "null key": null
       },
       "geometry": {
         "type": "Polygon",
