@@ -40,6 +40,7 @@ pub fn process_feature(
     decimal: Option<usize>,
     remove_null_properties: bool,
     properties_to_remove: Option<&Vec<String>>,
+    properties_to_keep: Option<&Vec<String>>,
 ) {
     if let Some(geometry) = feature.get_mut("geometry").and_then(|g| g.as_object_mut()) {
         if let Some(coords) = geometry.get_mut(&"coordinates".to_string()) {
@@ -54,8 +55,13 @@ pub fn process_feature(
         if let Some(keys) = properties_to_remove {
             remove_properties(feature, keys);
         }
+
+        if let Some(keys) = properties_to_keep {
+            keep_properties(feature, keys);
+        }
     }
 }
+
 
 fn remove_null_or_empty_properties(geojson: &mut Value) {
     debug!("Removing null or empty properties");
@@ -90,6 +96,31 @@ fn remove_properties(geojson: &mut Value, keys: &Vec<String>) {
         .and_then(|p| p.as_object_mut())
     {
         for key in keys {
+            println!("Removing property: {}", key);
+            debug!("Removing property: {}", key);
+            properties.remove(&key);
+        }
+    }
+}
+
+fn keep_properties(geojson: &mut Value, keys: &Vec<String>) {
+    debug!("Keeping properties: {:?}", keys);
+    println!("Keeping properties: {:?}", keys);
+    if let Some(properties) = geojson
+        .get_mut("properties")
+        .and_then(|p| p.as_object_mut())
+    {
+        let keys_to_remove: Vec<String> = properties
+            .iter()
+            .filter_map(|(key, _)| {
+                if !keys.contains(&key.to_string()){
+                    Some(key.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for key in keys_to_remove {
             println!("Removing property: {}", key);
             debug!("Removing property: {}", key);
             properties.remove(&key);
@@ -207,7 +238,7 @@ mod tests {
             }
         });
 
-        process_feature(&mut geojson, Some(2), false, None);
+        process_feature(&mut geojson, Some(2), false, None, None);
 
         assert_eq!(
             geojson,
@@ -243,7 +274,7 @@ mod tests {
             }
         });
 
-        process_feature(&mut geojson, None, true, None);
+        process_feature(&mut geojson, None, true, None, None);
 
         assert_eq!(
             geojson,
@@ -277,7 +308,7 @@ mod tests {
             }
         });
 
-        process_feature(&mut geojson, Some(2), true, None);
+        process_feature(&mut geojson, Some(2), true, None, None);
 
         assert_eq!(
             geojson,
@@ -316,6 +347,7 @@ mod tests {
             None,
             false,
             Some(&vec!["name".to_string(), "empty".to_string()]),
+            None,
         );
 
         assert_eq!(

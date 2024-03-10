@@ -84,6 +84,7 @@ pub fn process_geojson(
     decimal: Option<usize>,
     remove_null_properties: bool,
     properties_to_remove: Option<&Vec<String>>,
+    properties_to_keep: Option<&Vec<String>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Processing GeoJSON, with decimal precision: {:?}", decimal);
     debug!("Remove null properties: {}", remove_null_properties);
@@ -94,6 +95,7 @@ pub fn process_geojson(
             decimal,
             remove_null_properties,
             properties_to_remove,
+            properties_to_keep,
         ),
         None => {
             if let Some(features) = geojson.get_mut("features").and_then(|f| f.as_array_mut()) {
@@ -103,6 +105,7 @@ pub fn process_geojson(
                         decimal,
                         remove_null_properties,
                         properties_to_remove,
+                        properties_to_keep,
                     );
                 }
             }
@@ -130,6 +133,7 @@ pub fn handle_geojson_processing(
         decimal,
         args.remove_null_properties,
         args.properties_to_remove.as_ref(),
+        args.properties_to_keep.as_ref(),
     )?;
     info!("GeoJSON processed successfully.");
 

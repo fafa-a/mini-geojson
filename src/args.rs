@@ -38,6 +38,13 @@ pub struct Args {
 
     /// Remove the properties with the specified keys.
     /// example: -r key1 key2 key3 or -r key1,key2,key3
+    /// Note: -r or -k can be used together.
     #[clap(short = 'r', long, num_args = ValueRange::new(0..), value_delimiter = ',')]
     pub properties_to_remove: Option<Vec<String>>,
+
+    /// Keep only the properties with the specified keys.
+    /// example: -k key1 key2 key3 or -k key1,key2,key3
+    /// Note: -r or -k can be used together.
+    #[clap(short = 'k', long, num_args = ValueRange::new(0..), value_delimiter = ',')]
+    pub properties_to_keep: Option<Vec<String>>,
 }
