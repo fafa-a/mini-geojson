@@ -375,27 +375,59 @@ mod tests {
     fn test_is_geosjon_coordinates_truncated_by_three() {
         let file_path = "data/test-geojson-true.geojson";
         let mut parsed_json = read_json_file(file_path).unwrap();
-        process_geojson(&mut parsed_json, Some(3), false, None).unwrap();
+        process_geojson(&mut parsed_json, Some(3), false, None, None).unwrap();
         let expected = read_json_file("data/test-geojson-true-truncated.geojson").unwrap();
         assert_eq!(parsed_json, expected);
     }
 
     #[test]
-    fn test_remove_specific_keys(){
+    fn test_remove_specific_keys() {
         let file_path = "data/small-departements.geojson";
         let mut parsed_json = read_json_file(file_path).unwrap();
-        process_geojson(&mut parsed_json, None, false, Some(&vec!["name".to_string(), "key_to_delete".to_string()])).unwrap();
-        let expected = read_json_file("data/min_small-departements-keys-to-delete.geojson").unwrap();
+        process_geojson(
+            &mut parsed_json,
+            None,
+            false,
+            Some(&vec!["name".to_string(), "key_to_delete".to_string()]),
+            None,
+        )
+        .unwrap();
+        let expected =
+            read_json_file("data/min_small-departements-keys-to-delete.geojson").unwrap();
         assert_eq!(parsed_json, expected);
-
     }
 
     #[test]
-    fn test_remove_specific_keys_and_null_and_empty(){
+    fn test_remove_specific_keys_and_null_and_empty() {
         let file_path = "data/small-departements.geojson";
         let mut parsed_json = read_json_file(file_path).unwrap();
-        process_geojson(&mut parsed_json, None, true, Some(&vec!["name".to_string(), "key_to_delete".to_string()])).unwrap();
-        let expected = read_json_file("data/min_small-departements-keys-to-delete-empty-null-values.geojson").unwrap();
+        process_geojson(
+            &mut parsed_json,
+            None,
+            true,
+            Some(&vec!["name".to_string(), "key_to_delete".to_string()]),
+            None,
+        )
+        .unwrap();
+        let expected =
+            read_json_file("data/min_small-departements-keys-to-delete-empty-null-values.geojson")
+                .unwrap();
+        assert_eq!(parsed_json, expected);
+    }
+
+    #[test]
+    fn test_keep_specific_keys() {
+        let file_path = "data/small-departements.geojson";
+        let mut parsed_json = read_json_file(file_path).unwrap();
+        process_geojson(
+            &mut parsed_json,
+            None,
+            false,
+            None,
+            Some(&vec!["id".to_string(), "name".to_string(), "key_to_keep".to_string()]),
+        )
+        .unwrap();
+        let expected = read_json_file("data/min_small-departements-keys-to-keep.geojson").unwrap();
         assert_eq!(parsed_json, expected);
     }
 

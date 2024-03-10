@@ -365,4 +365,84 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn test_process_feature_with_only_keep_properties() {
+        let mut geojson = json!({
+            "type": "Feature",
+            "properties": {
+                "name": "test",
+                "empty": "",
+                "null": null,
+                "value": "value"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1.234567, 2.345678]
+            }
+        });
+
+        process_feature(
+            &mut geojson,
+            None,
+            false,
+            None,
+            Some(&vec!["name".to_string(), "empty".to_string()]),
+        );
+
+        assert_eq!(
+            geojson,
+            json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "empty": ""
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.234567, 2.345678]
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_process_feature_with_truncation_and_keep_properties() {
+        let mut geojson = json!({
+            "type": "Feature",
+            "properties": {
+                "name": "test",
+                "empty": "",
+                "null": null,
+                "value": "value"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [1.234567, 2.345678]
+            }
+        });
+
+        process_feature(
+            &mut geojson,
+            Some(2),
+            false,
+            None,
+            Some(&vec!["name".to_string(), "empty".to_string()]),
+        );
+
+        assert_eq!(
+            geojson,
+            json!({
+                "type": "Feature",
+                "properties": {
+                    "name": "test",
+                    "empty": ""
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [1.23, 2.35]
+                }
+            })
+        );
+    }
 }
