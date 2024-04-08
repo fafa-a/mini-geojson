@@ -2,49 +2,58 @@ name: Rust
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
-  pull_request:
-    branches:
-      - main
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test_and_release:
-    runs-on: ubuntu-latest
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            release_suffix: linux
+          - os: windows-latest
+            release_suffix: windows
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
       - name: Run tests
         run: cargo test --verbose
 
-      - name: Build Release Binary
-        if: success()
+      - name: Build Release
         run: cargo build --release --verbose
 
-      - name: Create Release
+      - name: Create/Update Release
         id: create_release
+        uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
           prerelease: false
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
 
       - name: Upload Release Asset
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/release/mini-geojson
-          asset_name: mini-geojson
+          asset_path: target/release/mini-geojson-${{ matrix.release_suffix }}
+          asset_name: mini-geojson-${{ matrix.release_suffix }}
           asset_content_type: application/octet-stream
