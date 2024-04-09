@@ -49,12 +49,22 @@ On Windows, use:
    ```bash
    sudo mv path/to/mini-geojson-linux /usr/local/bin/mini-geojson
    ```
+    
+4. Or you can run the following commands to download the binary and make it executable.
+   
+   ```bash
+   curl -LO https://github.com/fafa-a/mini-geojson/releases/download/v0.0.36/mini-geojson-linux
+   chmod +x mini-geojson-linux
+   sudo mv mini-geojson-linux /usr/local/bin/mini-geojson
+   source ~/.zshrc
+   ```
+    
 
-4. You can now run the program like this:
+5. You can now run the program like this:
 
    On Linux:
    ```bash
-   ./path/to/mini-geojson-linux
+   mini-geojson --help
    ```
 
    On Windows, just double click the `.exe` file to run it.
