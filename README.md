@@ -34,7 +34,7 @@ On Windows, use:
 
 ### From release
 
-1. Go to the [releases page](https://github.com/fafa-a/mini-geojson/releases/tag/v0.0.36) of the mini-geojson repository.
+1. Go to the [releases page](https://github.com/fafa-a/mini-geojson/releases/latest) of the mini-geojson repository.
 
 2. Download the appropriate binary for your operating system (e.g., `mini-geojson-linux` for Linux, `mini-geojson-windows.exe` for Windows).
 
@@ -53,7 +53,7 @@ On Windows, use:
 4. Or you can run the following commands to download the binary and make it executable.
    
    ```bash
-   curl -LO https://github.com/fafa-a/mini-geojson/releases/download/v0.0.36/mini-geojson-linux
+   curl -LO https://github.com/fafa-a/mini-geojson/releases/latest/download/mini-geojson-linux
    chmod +x mini-geojson-linux
    sudo mv mini-geojson-linux /usr/local/bin/mini-geojson
    source ~/.zshrc
